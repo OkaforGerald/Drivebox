@@ -18,7 +18,18 @@ namespace Repository
         {
             base.OnModelCreating(builder);
 
+            builder.Entity<UserFolders>()
+                .HasOne(x => x.User)
+                .WithMany(x => x.UserFolders);
+
+            builder.Entity<UserFolders>()
+                .HasOne(x => x.Folder)
+                .WithMany(x => x.UserFolders);
         }
 
+        public DbSet<Folder> Folders { get; set; }
+        public DbSet<Content> Contents { get; set; }
+        public DbSet<Request> Requests { get; set; }
+        public DbSet<UserFolders> UserFolders { get; set; }
     }
 }
