@@ -1,0 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Entities.Models;
+
+namespace Contracts
+{
+    public interface IFolderRepository
+    {
+        void CreateFolder(Folder Folder);
+
+        void DeleteFolder(Folder Folder);
+
+        Task<Folder> GetFolder(Guid FolderId, bool trackChanges);
+        
+        Task<List<Folder>> GetFoldersByUser(string UserId, bool trackChanges);
+    }
+}

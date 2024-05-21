@@ -18,6 +18,10 @@ namespace Entities.Models
         public Folder? Folder { get; set; }
         public Guid FolderId { get; set; }
 
+        public string? Name { get; set; }
+
+        public string? FileExt { get; set; }
+
         public FileType FileType { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using Entities.Exceptions;
+using Microsoft.AspNetCore.Diagnostics;
 using SharedAPI;
 
 namespace Dropbox.Extensions
@@ -20,6 +21,7 @@ namespace Dropbox.Extensions
                         {
                             context.Response.StatusCode = contextFeatures.Error switch
                             {
+                                NotFoundException => StatusCodes.Status404NotFound,
                                 _ => StatusCodes.Status500InternalServerError
                             };
 

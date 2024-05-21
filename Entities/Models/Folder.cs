@@ -17,6 +17,8 @@ namespace Entities.Models
         public User? Owner { get; set; }
         public string? OwnerId { get; set; }
 
+        public string? Name { get; set; }
+
         public Access Access { get; set; }
 
         public ICollection<Request>? Requests { get; set; }
