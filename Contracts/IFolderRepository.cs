@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Entities.Models;
+using SharedAPI.RequestFeatures;
 
 namespace Contracts
 {
@@ -15,6 +16,8 @@ namespace Contracts
 
         Task<Folder> GetFolder(Guid FolderId, bool trackChanges);
         
+        Task<List<Folder>> GetFoldersByUser(string UserId, RequestParameters parameters, bool trackChanges);
+
         Task<List<Folder>> GetFoldersByUser(string UserId, bool trackChanges);
     }
 }

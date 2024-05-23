@@ -103,7 +103,6 @@ namespace Dropbox.Presentation.Controllers
         }
 
         [HttpPost("refresh-token")]
-        [Authorize]
         public async Task<IActionResult> RefreshTokens([FromBody] TokenDto token)
         {
             if (token is null)

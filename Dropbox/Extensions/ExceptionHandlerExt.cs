@@ -22,6 +22,7 @@ namespace Dropbox.Extensions
                             context.Response.StatusCode = contextFeatures.Error switch
                             {
                                 NotFoundException => StatusCodes.Status404NotFound,
+                                UnauthorizedFolderException => StatusCodes.Status401Unauthorized,
                                 _ => StatusCodes.Status500InternalServerError
                             };
 

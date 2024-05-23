@@ -4,16 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
+using CloudinaryDotNet.Actions;
 using Contracts;
 using Entities.Exceptions;
 using Entities.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Services.Contracts;
 using SharedAPI.DataTransfer;
+using SharedAPI.RequestFeatures;
 
 namespace Services
 {
-    public class FolderService
+    public class FolderService : IFolderService
     {
         private readonly IRepositoryManager manager;
         private readonly UserManager<User> userManager;
@@ -38,7 +41,7 @@ namespace Services
                 throw new Exception("Folder already exists!");
             }
 
-            var newFolder = new Folder
+            var newFolder = new Entities.Models.Folder
             {
                 Name = folder.Name,
                 Access = folder.Access,
@@ -46,17 +49,27 @@ namespace Services
                 OwnerId = user?.Id
             };
 
-            //Create Permissions
-
             manager.folder.CreateFolder(newFolder);
+
+            var userFolder = new UserFolders
+            {
+                UserId = user?.Id,
+                FolderId = newFolder.Id,
+                Permissions = Permissions.ReadnWrite
+            };
+
+            manager.userFolder.CreateUserFolder(userFolder);
+            
             await manager.SaveAsync();
         }
 
         public async Task DeleteFolderAsync(string username, Guid FolderId)
         {
-            var folder = await manager.folder.GetFolder(FolderId, trackChanges: false);
+            var user = await userManager.FindByNameAsync(username);
 
-            if(folder is null)
+            var folder = await manager.folder.GetFolder(FolderId, trackChanges: true);
+
+            if(folder is null || folder.OwnerId != user?.Id)
             {
                 throw new FolderNotFoundException(FolderId);
             }
@@ -65,5 +78,41 @@ namespace Services
             await manager.SaveAsync();
         }
 
+        public async Task<List<FolderDto>> GetFoldersForUsersAsync(string username, RequestParameters parameters)
+        {
+            var user = await userManager.FindByNameAsync(username);
+
+            var folders = await manager.folder.GetFoldersByUser(user.Id, parameters, trackChanges: false);
+
+            var response = mapper.Map<List<FolderDto>>(folders);
+
+            return response;
+        }
+
+        public async Task<FolderDto> GetFolderAsync(string username, Guid Id)
+        {
+            var user = await userManager.FindByNameAsync(username);
+
+            var folder = await manager.folder.GetFolder(Id, trackChanges: false);
+
+            var permissions = await manager.userFolder.GetCollaboratorsForFolder(Id, false);
+
+            var collaborators = permissions.Select(x => x.UserId)
+                .ToList();
+
+            if (folder is null)
+            {
+                throw new FolderNotFoundException(Id);
+            }
+
+            if(folder.Access == Access.Private && collaborators.Any(x => x.Equals(user?.Id)))
+            {
+                throw new UnauthorizedFolderException(Id);
+            }
+
+            var response = mapper.Map<FolderDto>(folder);
+
+            return response;
+        }
     }
 }

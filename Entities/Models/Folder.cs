@@ -14,6 +14,8 @@ namespace Entities.Models
 
     public class Folder : EntityBase
     {
+        public Guid BaseFolderId { get; set; }
+
         public User? Owner { get; set; }
         public string? OwnerId { get; set; }
 

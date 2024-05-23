@@ -17,7 +17,6 @@
     <ProjectReference Include="..\Contracts\Contracts.csproj" />
     <ProjectReference Include="..\Repository\Repository.csproj" />
     <ProjectReference Include="..\Services.Contracts\Services.Contracts.csproj" />
-    <ProjectReference Include="..\SharedAPI\SharedAPI.csproj" />
   </ItemGroup>
 
 </Project>
