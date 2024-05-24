@@ -14,8 +14,10 @@ namespace Services.Contracts
 
         Task DeleteFolderAsync(string username, Guid FolderId);
 
-        Task<List<FolderDto>> GetFoldersForUsersAsync(string username, RequestParameters parameters);
+        Task<List<FolderDto>> GetFoldersForUserAsync(string username, RequestParameters parameters);
 
-        Task<FolderDto> GetFolderAsync(string username, Guid Id);
+        Task<FolderV2Dto> GetFolderAsync(string username, Guid Id);
+
+        Task UpdateFolderAsync(string username, Guid Id, CreateFolderDto update);
     }
 }

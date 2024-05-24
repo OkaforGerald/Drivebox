@@ -10,6 +10,8 @@ namespace SharedAPI.DataTransfer
 {
     public class CreateFolderDto
     {
+        public Guid BaseFolderId { get; set; } = Guid.Empty;
+
         [Required]
         public string? Name { get; set; }
 

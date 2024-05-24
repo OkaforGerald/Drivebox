@@ -18,6 +18,10 @@ namespace Contracts
         
         Task<List<Folder>> GetFoldersByUser(string UserId, RequestParameters parameters, bool trackChanges);
 
+        Task<Folder> GetBaseFolder(Guid Id, bool trackChanges);
+
+        Task<List<Folder>> GetChildFolders(Guid Id, bool trackChanges);
+
         Task<List<Folder>> GetFoldersByUser(string UserId, bool trackChanges);
     }
 }

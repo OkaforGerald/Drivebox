@@ -36,7 +36,7 @@ namespace Repository
 
         public async Task<List<Folder>> GetFoldersByUser(string UserId, RequestParameters parameters, bool trackChanges)
         {
-            return await FindByCondition(x => x.OwnerId.Equals(UserId), trackChanges)
+            return await FindByCondition(x => x.OwnerId.Equals(UserId) && x.BaseFolderId.Equals(Guid.Empty), trackChanges)
                 .Include(x => x.Owner)
                 .Filter(parameters.FolderType)
                 .Search(parameters.SearchTerm)
@@ -46,8 +46,26 @@ namespace Repository
 
         public async Task<List<Folder>> GetFoldersByUser(string UserId, bool trackChanges)
         {
-            return await FindByCondition(x => x.OwnerId.Equals(UserId), trackChanges)
+            return await FindByCondition(x => x.OwnerId.Equals(UserId) && x.BaseFolderId.Equals(Guid.Empty), trackChanges)
                 .ToListAsync();
+        }
+
+        public async Task<List<Folder>> GetChildFolders(Guid Id, bool trackChanges)
+        {
+            return await FindByCondition(x => x.BaseFolderId.Equals(Id), trackChanges)
+                .ToListAsync();
+        }
+
+        public async Task<Folder> GetBaseFolder(Guid Id, bool trackChanges)
+        {
+            Folder baseFolder = await GetFolder(Id, trackChanges);
+
+            while(baseFolder.BaseFolderId != Guid.Empty)
+            {
+                baseFolder = await GetFolder(baseFolder.BaseFolderId, trackChanges);
+            }
+
+            return baseFolder;
         }
     }
 }

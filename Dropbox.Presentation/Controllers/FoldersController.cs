@@ -77,8 +77,43 @@ namespace Dropbox.Presentation.Controllers
         public async Task<IActionResult> GetFolders([FromQuery] RequestParameters parameters)
         {
             var username = HttpContext?.User?.Identity?.Name;
-            var response = await serviceManager.FolderService.GetFoldersForUsersAsync(username, parameters);
-            return Ok(response);
+            var response = await serviceManager.FolderService.GetFoldersForUserAsync(username, parameters);
+            return Ok(new ResponseDto<List<FolderDto>>
+            {
+                IsSuccessful = true,
+                StatusCode = StatusCodes.Status200OK,
+                Data = response
+            });
+        }
+
+        [HttpGet("{Id:Guid}")]
+        [Authorize]
+        public async Task<IActionResult> GetFolder(Guid Id)
+        {
+            var username = HttpContext?.User?.Identity?.Name;
+            var response = await serviceManager.FolderService.GetFolderAsync(username, Id);
+            return Ok(new ResponseDto<FolderV2Dto>
+            {
+                IsSuccessful = true,
+                StatusCode = StatusCodes.Status200OK,
+                Data = response
+            });
+        }
+
+        [HttpPut("{Id:Guid}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateFolder(Guid Id, [FromBody] CreateFolderDto dto)
+        {
+            var username = HttpContext?.User?.Identity?.Name;
+            
+            await serviceManager.FolderService.UpdateFolderAsync(username, Id, dto);
+
+            return Ok(new ResponseDto<string>
+            {
+                IsSuccessful = true,
+                StatusCode = StatusCodes.Status200OK,
+                Data = "Folder updated successfully!"
+            });
         }
     }
 }
