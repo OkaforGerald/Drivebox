@@ -20,8 +20,12 @@ namespace Entities.Models
 
         public string? Name { get; set; }
 
+        public long Size { get; set; }
+
         public string? FileExt { get; set; }
 
         public FileType FileType { get; set; }
+
+        public string? URL { get; set; }
     }
 }

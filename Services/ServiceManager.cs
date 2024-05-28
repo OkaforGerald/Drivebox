@@ -16,14 +16,18 @@ namespace Services
     {
         private readonly Lazy<IAuthService> _authService;
         private readonly Lazy<IFolderService> _folderService;
+        private readonly Lazy<IContentService> _contentService;
         public ServiceManager(UserManager<User> userManager, IMapper mapper, IConfiguration configuration, IRepositoryManager manager)
         {
             _authService = new Lazy<IAuthService>(new AuthService(userManager, mapper, configuration));
             _folderService = new Lazy<IFolderService>(new FolderService(manager, userManager, mapper));
+            _contentService = new Lazy<IContentService>(new ContentService(configuration, manager, userManager));
         }
 
         public IAuthService AuthService => _authService.Value;
 
         public IFolderService FolderService => _folderService.Value;
+
+        public IContentService ContentService => _contentService.Value;
     }
 }

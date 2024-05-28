@@ -10,16 +10,16 @@ namespace SharedAPI.DataTransfer
     {
         public Guid Id { get; set; }
 
-        public Guid FolderId { get; set; }
-
         public string? Name { get; set; }
 
         public string? FileExt { get; set; }
 
         public string? FileType { get; set; }
 
-        public DateTime CreatedAt { get; set; }
+        public string? Size { get; set; }
 
-        public DateTime UpdatedAt { get; set; }
+        public string? URL { get; set; }
+
+        public DateTime CreatedAt { get; set; }
     }
 }

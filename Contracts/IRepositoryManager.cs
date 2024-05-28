@@ -10,6 +10,8 @@ namespace Contracts
     {
         IFolderRepository folder {  get; }
 
+        IContentRepository content { get; }
+
         IUserFolderRepository userFolder { get; }
 
         Task SaveAsync();

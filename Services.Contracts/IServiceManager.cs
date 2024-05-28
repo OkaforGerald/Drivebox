@@ -11,5 +11,7 @@ namespace Services.Contracts
         IAuthService AuthService { get; }
 
         IFolderService FolderService { get; }
+
+        IContentService ContentService { get; }
     }
 }

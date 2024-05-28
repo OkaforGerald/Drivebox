@@ -151,10 +151,12 @@ namespace Services
             var collaborators = permissions.Select(x => x.UserId)
                 .ToList();
 
-            if(folder.Access == Access.Private && collaborators.Any(x => x.Equals(user?.Id)))
+            if(folder.Access == Access.Private && !collaborators.Any(x => x.Equals(user?.Id)))
             {
                 throw new UnauthorizedFolderException(Id);
             }
+
+            var contents = await manager.content.GetContentsByFolderAsync(Id, trackChanges: false);
 
             var response = new FolderV2Dto
             {
@@ -165,7 +167,7 @@ namespace Services
                 Access = folder?.Access.ToString(),
                 Collaborators = permissions.Select(x => new CollaboratorDto { UserName = x.User.UserName, Permissions = x.Permissions.ToString() }).ToList(),
                 Folders = mapper.Map<List<FolderDto>>(await manager.folder.GetChildFolders(Id, trackChanges: false)),
-                Contents = null,
+                Contents = mapper.Map<List<ContentDto>>(contents),
                 CreatedAt = folder.CreatedAt,
                 UpdatedAt = folder.UpdatedAt                
             };
@@ -189,6 +191,7 @@ namespace Services
             if(collaborators.Where(x => x.Permissions == Permissions.ReadnWrite).Any(x => x.UserId.Equals(user.Id))){
                 folder.Name = update.Name;
                 folder.Access = update.Access;
+                folder.UpdatedAt = DateTime.Now;
 
                 await manager.SaveAsync();
             }
