@@ -14,6 +14,8 @@ namespace Contracts
 
         IUserFolderRepository userFolder { get; }
 
+        IRequestRepository request { get; }
+
         Task SaveAsync();
     }
 }

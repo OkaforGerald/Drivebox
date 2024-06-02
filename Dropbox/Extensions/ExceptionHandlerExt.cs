@@ -23,6 +23,7 @@ namespace Dropbox.Extensions
                             {
                                 NotFoundException => StatusCodes.Status404NotFound,
                                 UnauthorizedFolderException => StatusCodes.Status401Unauthorized,
+                                UnauthorizedAction => StatusCodes.Status401Unauthorized,
                                 _ => StatusCodes.Status500InternalServerError
                             };
 

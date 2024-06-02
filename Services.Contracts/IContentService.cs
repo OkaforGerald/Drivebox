@@ -10,5 +10,7 @@ namespace Services.Contracts
     public interface IContentService
     {
         Task CreateContent(string username, Guid FolderId, IFormFile file);
+
+        Task DeleteContentAsync(string username, Guid FolderId, Guid ContentId);
     }
 }

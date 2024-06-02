@@ -28,7 +28,7 @@ namespace Services
             this.configuration = configuration;
             cloudinary = new Cloudinary(new Account(configuration.GetSection("Cloudinary")["CloudName"],
                 configuration.GetSection("Cloudinary")["API-KEY"],
-                configuration.GetSection("CLoudinary")["API-SECRET"]));
+                configuration.GetSection("Cloudinary")["API-SECRET"]));
             cloudinary.Api.Secure = true;
             this.manager = manager;
             this.userManager = userManager;
@@ -51,6 +51,12 @@ namespace Services
             if (!collaborators.Where(x => x.Permissions == Permissions.ReadnWrite).Any(x => x.UserId.Equals(user.Id)))
             {
                 throw new UnauthorizedFolderException(baseFolder.Id);
+            }
+
+            var contentsInFolder = await manager.content.GetContentsByFolderAsync(FolderId, false);
+            if(contentsInFolder is not null && contentsInFolder.Any(x => x.Name.Equals(file.FileName.Split('.')[0], StringComparison.CurrentCultureIgnoreCase)))
+            {
+                throw new Exception("Content with the same name already exists!");
             }
 
             var fileType = GetFileType(file);
@@ -144,6 +150,39 @@ namespace Services
                 var uploadResult = cloudinary.Upload(uploadParams);
                 return uploadResult;
             }
+        }
+
+        public async Task DeleteContentAsync(string username, Guid FolderId, Guid ContentId)
+        {
+            var user = await userManager.FindByNameAsync(username);
+
+            var folder = await manager.folder.GetFolder(FolderId, trackChanges: true);
+
+            if (folder is null)
+            {
+                throw new FolderNotFoundException(FolderId);
+            }
+            var baseFolder = await manager.folder.GetBaseFolder(folder.Id, false);
+
+            var collaborators = await manager.userFolder.GetCollaboratorsForFolder(baseFolder.Id, false);
+
+            if (!collaborators.Where(x => x.Permissions == Permissions.ReadnWrite).Any(x => x.UserId.Equals(user.Id)))
+            {
+                throw new UnauthorizedFolderException(baseFolder.Id);
+            }
+
+            var content = await manager.content.GetContentAsync(FolderId, ContentId, trackChanges: true);
+
+            if(content is null)
+            {
+                throw new CodeNotFoundException(ContentId);
+            }
+
+            await cloudinary.DestroyAsync(new DeletionParams($"{content.URL.Split('/')[^2]}/{content.URL.Split('/')[^1].Split('.')[0]}"));
+
+            manager.content.DeleteContent(content);
+
+            await manager.SaveAsync();
         }
     }
 }

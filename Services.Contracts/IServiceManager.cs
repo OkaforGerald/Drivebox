@@ -13,5 +13,7 @@ namespace Services.Contracts
         IFolderService FolderService { get; }
 
         IContentService ContentService { get; }
+
+        IRequestService RequestService { get; }
     }
 }

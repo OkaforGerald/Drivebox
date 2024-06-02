@@ -15,8 +15,28 @@ namespace Dropbox
                 .ForMember(x => x.Access, src => src.MapFrom(x => x.Access.ToString()));
 
             CreateMap<Content, ContentDto>()
-                .ForMember(x => x.Size, src => src.MapFrom(x => $"{(double) x.Size / 1_046_529} MB"))
+                .ForMember(x => x.Size, src => src.MapFrom(x => GetFileSize(x.Size)))
                 .ForMember(x => x.FileType, src => src.MapFrom(x => x.FileType.ToString()));
+        }
+
+        public string GetFileSize(long Size)
+        {
+            string[] denomination = { "B", "KB", "MB", "GB" };
+
+            int divisionCount = 0;
+
+            while (true)
+            {
+                if (Size < 1023)
+                {
+                    return $"{Size} {denomination[divisionCount]}";
+                }
+                else
+                {
+                    Size = Size / 1023;
+                    divisionCount++;
+                }
+            }
         }
     }
 }

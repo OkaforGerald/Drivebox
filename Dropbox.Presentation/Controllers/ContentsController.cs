@@ -42,7 +42,23 @@ namespace Dropbox.Presentation.Controllers
             {
                 IsSuccessful = true,
                 StatusCode = StatusCodes.Status200OK,
-                Data = "Content Created Successfully!"
+                Data = "File Created Successfully!"
+            });
+        }
+
+        [HttpDelete]
+        [Authorize]
+        public async Task<IActionResult> DeleteFolderAsync(Guid FolderId, Guid ContentId)
+        {
+            var username = HttpContext?.User?.Identity?.Name;
+
+            await serviceManager.ContentService.DeleteContentAsync(username, FolderId, ContentId);
+
+            return Ok(new ResponseDto<string>
+            {
+                IsSuccessful =true,
+                StatusCode = StatusCodes.Status200OK,
+                Data = "File Deleted Successfully!"
             });
         }
     }

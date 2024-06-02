@@ -9,7 +9,8 @@ namespace Entities.Models
     public enum RequestStatus
     {
         Accepted = 100,
-        Denied = 200
+        Denied = 200,
+        AwaitingAck = 300
     }
 
     public class Request : EntityBase
