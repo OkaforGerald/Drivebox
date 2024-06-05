@@ -29,7 +29,7 @@ namespace Repository.Extensions
 
                 if (propInfo is not null)
                 {
-                    string parameter = $"{propInfo.Name.ToString()} {prop.Split(' ')[1].Trim() switch { "asc" => "ascending",
+                    string parameter = $"{propInfo.Name} {prop.Split(' ')[1].Trim() switch { "asc" => "ascending",
                         "desc" => "descending",
                         _ => null }},";
 

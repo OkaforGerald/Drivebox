@@ -115,5 +115,20 @@ namespace Dropbox.Presentation.Controllers
                 Data = "Folder updated successfully!"
             });
         }
+
+        [HttpPost("sync")]
+        public async Task<IActionResult> GetWhatever(string path)
+        {
+            var username = HttpContext?.User?.Identity?.Name;
+
+            if (String.IsNullOrEmpty(path))
+            {
+                return BadRequest();
+            }
+
+            await serviceManager.FolderService.SyncLocalFolder(username, path);
+
+            return Ok();
+        }
     }
 }

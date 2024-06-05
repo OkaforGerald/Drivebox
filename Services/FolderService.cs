@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -41,7 +44,7 @@ namespace Services
             }
             else
             {
-                folders = await manager.folder.GetChildFolders(folder.BaseFolderId, trackChanges: false);
+                folders = await manager.folder.GetChildFolders(folder.BaseFolderId, user.Id, trackChanges: false);
 
                 var collaborators = await manager.userFolder.GetCollaboratorsForFolder(folder.BaseFolderId, false);
 
@@ -166,7 +169,7 @@ namespace Services
                 Name = folder?.Name,
                 Access = folder?.Access.ToString(),
                 Collaborators = permissions.Select(x => new CollaboratorDto { UserName = x.User.UserName, Permissions = x.Permissions.ToString() }).ToList(),
-                Folders = mapper.Map<List<FolderDto>>(await manager.folder.GetChildFolders(Id, trackChanges: false)),
+                Folders = mapper.Map<List<FolderDto>>(await manager.folder.GetChildFolders(Id, folder.OwnerId, trackChanges: false)),
                 Contents = mapper.Map<List<ContentDto>>(contents),
                 CreatedAt = folder.CreatedAt,
                 UpdatedAt = folder.UpdatedAt                
@@ -199,7 +202,127 @@ namespace Services
             {
                 throw new UnauthorizedFolderException(Id);
             }
-            
+        }
+
+        public async Task SyncLocalFolder(string username, string AbsolutePath)
+        {
+            var user = await userManager.FindByNameAsync(username);
+            var PathExists = Directory.Exists(AbsolutePath);
+
+            if (!PathExists)
+            {
+                throw new NotFoundException("Path couldn't be found");
+            }
+
+            var Files = HashFilesInDirectory(AbsolutePath);
+            var hashedDirectories = HashSubDirectories(AbsolutePath);
+
+            await SyncFolders(Guid.Empty, user.Id, AbsolutePath);
+            await manager.SaveAsync();
+            Console.WriteLine();
+
+        }
+
+        private Dictionary<string, string> HashFilesInDirectory(string AbsolutePath)
+        {
+            Dictionary<string, string> hashedFiles = new Dictionary<string, string>();
+
+            if (Directory.GetFiles(AbsolutePath) is null)
+            {
+                return hashedFiles;
+            }
+
+            var files = Directory.GetFiles(AbsolutePath, "*", SearchOption.AllDirectories);
+
+            foreach (var file in files)
+            {
+                using(var algo = SHA256.Create())
+                {
+                    using(var stream = File.OpenRead(file))
+                    {
+                        var hash = algo.ComputeHash(stream);
+                        hashedFiles.Add(file.Remove(0, file.IndexOf(AbsolutePath.Split('\\')[^1])), Convert.ToBase64String(hash));
+                    }
+                }
+            }
+            return hashedFiles;
+        }
+
+        private Dictionary<string, string> HashSubDirectories(string AbsolutePath)
+        {
+            Dictionary<string, string> HashedSubDirectories = new Dictionary<string, string>();
+
+            if (Directory.GetDirectories(AbsolutePath) is null)
+            {
+                return HashedSubDirectories;
+            }
+
+            var directories = Directory.GetDirectories(AbsolutePath, "*", SearchOption.AllDirectories);
+
+            foreach(var d in directories)
+            {
+                using(var algo = SHA256.Create())
+                {
+                    var hash = algo.ComputeHash(Encoding.UTF8.GetBytes(d));
+                    HashedSubDirectories.Add(d.Remove(0, d.IndexOf(AbsolutePath.Split('\\')[^1])), Convert.ToBase64String(hash));
+                }
+            }
+            return HashedSubDirectories;
+        }
+
+        private async Task SyncFolders(Guid BaseFolderId, string ownerID, string AbsolutePath)
+        {
+            var PathExists = Directory.Exists(AbsolutePath);
+
+            if (!PathExists)
+            {
+                throw new NotFoundException("Path couldn't be found");
+            }
+
+            var childFolders = await manager.folder.GetChildFolders(BaseFolderId, ownerID, trackChanges: false);
+
+            var FolderExists = childFolders.Any(x => x.Name.Equals(AbsolutePath.Split('\\')[^1]));
+
+            if (FolderExists)
+            {
+                throw new Exception("Folder already exists!");
+            }
+
+            Guid FolderId = BaseFolderId;
+            if (BaseFolderId.Equals(Guid.Empty))
+            {
+                var Folder = new Entities.Models.Folder
+                {
+                    BaseFolderId = BaseFolderId,
+                    Name = AbsolutePath.Split('\\')[^1],
+                    Access = Access.Private,
+                    CreatedAt = DateTime.Now,
+                    OwnerId = ownerID
+                };
+
+                manager.folder.CreateFolder(Folder);
+
+                FolderId = Folder.Id;
+            }
+
+            var topDirectories = Directory.GetDirectories(AbsolutePath, "*", SearchOption.TopDirectoryOnly);
+
+            foreach(var dirs in topDirectories)
+            {
+                var SubFolder = new Entities.Models.Folder
+                {
+                    BaseFolderId = FolderId,
+                    Name = dirs.Split('\\')[^1],
+                    Access = Access.Private,
+                    CreatedAt = DateTime.Now,
+                    OwnerId = ownerID
+                };
+
+                manager.folder.CreateFolder(SubFolder);
+
+                await SyncFolders(SubFolder.Id, ownerID, dirs);
+            }
+
         }
     }
 }
