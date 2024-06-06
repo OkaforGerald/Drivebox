@@ -12,5 +12,7 @@ namespace Services.Contracts
         Task CreateContent(string username, Guid FolderId, IFormFile file);
 
         Task DeleteContentAsync(string username, Guid FolderId, Guid ContentId);
+
+        Task SyncLocalFolder(string username, string AbsolutePath);
     }
 }

@@ -126,7 +126,7 @@ namespace Dropbox.Presentation.Controllers
                 return BadRequest();
             }
 
-            await serviceManager.FolderService.SyncLocalFolder(username, path);
+            await serviceManager.ContentService.SyncLocalFolder(username, path);
 
             return Ok();
         }

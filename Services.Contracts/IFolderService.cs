@@ -19,7 +19,5 @@ namespace Services.Contracts
         Task<FolderV2Dto> GetFolderAsync(string username, Guid Id);
 
         Task UpdateFolderAsync(string username, Guid Id, CreateFolderDto update);
-
-        Task SyncLocalFolder(string username, string AbsolutePath);
     }
 }
