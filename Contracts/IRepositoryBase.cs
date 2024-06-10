@@ -12,6 +12,8 @@ namespace Contracts
         void Create(T entity);
 
         void Delete(T entity);
+        
+        void DeleteMultiple(List<T> entities);
 
         void Update(T entity);
 

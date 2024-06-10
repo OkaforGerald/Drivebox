@@ -15,6 +15,7 @@ namespace Repository
         private readonly Lazy<IContentRepository> Content;
         private readonly Lazy<IRequestRepository> Request;
         private readonly Lazy<IUserFolderRepository> UserFolder;
+        private readonly Lazy<IBackupRepository> Backup;
 
         public RepositoryManager(RepositoryContext repositoryContext)
         {
@@ -23,6 +24,7 @@ namespace Repository
             UserFolder = new Lazy<IUserFolderRepository>(new UserFolderRepository(repositoryContext));
             Content = new Lazy<IContentRepository>(new ContentRepository(repositoryContext));
             Request = new Lazy<IRequestRepository>(new RequestRepository(repositoryContext));
+            Backup = new Lazy<IBackupRepository>(new BackupRepository(repositoryContext));
         }
 
         public IFolderRepository folder => Folder.Value;
@@ -32,6 +34,8 @@ namespace Repository
         public IContentRepository content => Content.Value;
 
         public IRequestRepository request => Request.Value;
+
+        public IBackupRepository backup => Backup.Value;
 
         public async Task SaveAsync()
         {

@@ -28,6 +28,11 @@ namespace Repository
             context.Set<T>().Remove(entity);
         }
 
+        public void DeleteMultiple(List<T> entities)
+        {
+            context.Set<T>().Where(x => entities.Contains(x)).ExecuteDelete();
+        }
+
         public IQueryable<T> FindAll(bool trackChanges)
         {
             return !trackChanges ? context.Set<T>().AsNoTracking() : context.Set<T>();

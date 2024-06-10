@@ -115,7 +115,7 @@ namespace Services
                 throw new FolderNotFoundException(FolderId);
             }
 
-            manager.folder.DeleteFolder(folder);
+            await manager.folder.DeleteFolder(folder);
             await manager.SaveAsync();
         }
 

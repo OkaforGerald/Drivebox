@@ -23,6 +23,10 @@ namespace Entities.Models
 
         public Access Access { get; set; }
 
+        public bool IsOnLocal { get; set; }
+
+        public string? PathOnLocal { get; set; }
+
         public ICollection<Request>? Requests { get; set; }
 
         public ICollection<UserFolders>? UserFolders { get; set;}

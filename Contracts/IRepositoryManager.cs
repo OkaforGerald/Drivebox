@@ -16,6 +16,8 @@ namespace Contracts
 
         IRequestRepository request { get; }
 
+        IBackupRepository backup { get; }
+
         Task SaveAsync();
     }
 }

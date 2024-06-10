@@ -31,5 +31,6 @@ namespace Repository
         public DbSet<Content> Contents { get; set; }
         public DbSet<Request> Requests { get; set; }
         public DbSet<UserFolders> UserFolders { get; set; }
+        public DbSet<Backup> Backups { get; set; }
     }
 }

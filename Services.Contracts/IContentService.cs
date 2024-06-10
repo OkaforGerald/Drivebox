@@ -14,5 +14,7 @@ namespace Services.Contracts
         Task DeleteContentAsync(string username, Guid FolderId, Guid ContentId);
 
         Task SyncLocalFolder(string username, string AbsolutePath);
+
+        Task BackupFolder(string username, Guid FolderId);
     }
 }

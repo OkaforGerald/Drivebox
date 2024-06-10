@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Entities.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -117,18 +118,46 @@ namespace Dropbox.Presentation.Controllers
         }
 
         [HttpPost("sync")]
-        public async Task<IActionResult> GetWhatever(string path)
+        public async Task<IActionResult> SyncLocalFolder(string path)
         {
             var username = HttpContext?.User?.Identity?.Name;
 
             if (String.IsNullOrEmpty(path))
             {
-                return BadRequest();
+                return BadRequest(new ResponseDto<string>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Errors = new List<string>
+                    {
+                        "Please provide a valid path!"
+                    }
+                });
             }
 
             await serviceManager.ContentService.SyncLocalFolder(username, path);
 
-            return Ok();
+            return Ok(new ResponseDto<string>
+            {
+                IsSuccessful = true,
+                StatusCode = StatusCodes.Status200OK,
+                Data = "Folder synced successfully!"
+            });
+        }
+
+        [HttpPut("{Id:Guid}/backup")]
+        [Authorize]
+        public async Task<IActionResult> Backup(Guid Id)
+        {
+            var user = HttpContext?.User?.Identity?.Name;
+
+            await serviceManager.ContentService.BackupFolder(user, Id);
+
+            return Ok(new ResponseDto<string>
+            {
+                IsSuccessful = true,
+                StatusCode = StatusCodes.Status200OK,
+                Data = "Folder back up successfully!"
+            });
         }
     }
 }

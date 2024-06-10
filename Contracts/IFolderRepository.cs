@@ -12,7 +12,7 @@ namespace Contracts
     {
         void CreateFolder(Folder Folder);
 
-        void DeleteFolder(Folder Folder);
+        Task DeleteFolder(Folder Folder);
 
         Task<Folder> GetFolder(Guid FolderId, bool trackChanges);
         
@@ -23,5 +23,11 @@ namespace Contracts
         Task<List<Folder>> GetChildFolders(Guid Id, string OwnerId, bool trackChanges);
 
         Task<List<Folder>> GetFoldersByUser(string UserId, bool trackChanges);
+
+        Task<Folder> GetFolderByName(string OwnerId, string FolderName, bool trackChanges);
+
+        Task<Folder> GetFolderByPath(string OwnerId, string AbsolutePath, bool trackChanges);
+
+        Task<List<Folder>> GetAllSubFolders(string ownerId, Guid FolderId, List<Folder> Folders, bool trackChanges);
     }
 }

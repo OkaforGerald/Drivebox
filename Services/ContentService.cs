@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
@@ -270,12 +272,26 @@ namespace Services
                 throw new NotFoundException("Path couldn't be found");
             }
 
-            var Files = HashFilesInDirectory(AbsolutePath);
-            var hashedDirectories = HashSubDirectories(AbsolutePath);
+            var Files = JsonSerializer.Serialize(HashFilesInDirectory(AbsolutePath));
+            var hashedDirectories = JsonSerializer.Serialize(HashSubDirectories(AbsolutePath));
 
             await SyncFolders(Guid.Empty, user.Id, AbsolutePath);
-            await manager.SaveAsync();
 
+            var folderForBackup = await manager.folder.GetFolderByName(user.Id, AbsolutePath.Split('\\')[^1], false);
+
+            var Backup = new Backup
+            {
+                OwnerId = user.Id,
+                FolderId = folderForBackup.Id,
+                HashedContents = Files,
+                HashedFolders = hashedDirectories,
+                Path = AbsolutePath,
+                CreatedAt = DateTime.Now
+            };
+
+            manager.backup.CreateBackup(Backup);
+
+            await manager.SaveAsync();
         }
 
         private Dictionary<string, string> HashFilesInDirectory(string AbsolutePath)
@@ -296,7 +312,7 @@ namespace Services
                     using (var stream = File.OpenRead(file))
                     {
                         var hash = algo.ComputeHash(stream);
-                        hashedFiles.Add(file.Remove(0, file.IndexOf(AbsolutePath.Split('\\')[^1])), Convert.ToBase64String(hash));
+                        hashedFiles.Add(file, Convert.ToBase64String(hash));
                     }
                 }
             }
@@ -319,7 +335,7 @@ namespace Services
                 using (var algo = SHA256.Create())
                 {
                     var hash = algo.ComputeHash(Encoding.UTF8.GetBytes(d));
-                    HashedSubDirectories.Add(d.Remove(0, d.IndexOf(AbsolutePath.Split('\\')[^1])), Convert.ToBase64String(hash));
+                    HashedSubDirectories.Add(d, Convert.ToBase64String(hash));
                 }
             }
             return HashedSubDirectories;
@@ -351,6 +367,8 @@ namespace Services
                     BaseFolderId = BaseFolderId,
                     Name = AbsolutePath.Split('\\')[^1],
                     Access = Access.Private,
+                    IsOnLocal = true,
+                    PathOnLocal = AbsolutePath,
                     CreatedAt = DateTime.Now,
                     OwnerId = ownerID
                 };
@@ -404,6 +422,8 @@ namespace Services
                     BaseFolderId = FolderId,
                     Name = dirs.Split('\\')[^1],
                     Access = Access.Private,
+                    IsOnLocal = true,
+                    PathOnLocal = dirs,
                     CreatedAt = DateTime.Now,
                     OwnerId = ownerID
                 };
@@ -442,6 +462,81 @@ namespace Services
                 await SyncFolders(SubFolder.Id, ownerID, dirs);
             }
 
+        }
+
+        public async Task BackupFolder(string username, Guid FolderId)
+        {
+            var user = await userManager.FindByNameAsync(username);
+
+            var folder = await manager.folder.GetFolder(FolderId, trackChanges: true);
+
+            if (folder is null)
+            {
+                throw new FolderNotFoundException(FolderId);
+            }
+
+            if (!folder.IsOnLocal)
+            {
+                throw new Exception("Folder isn't on your local machine!");
+            }
+
+            var backup = await manager.backup.GetBackup(folder.Id, trackChanges: true);
+
+            if(backup is null)
+            {
+                throw new NotFoundException($"Backup of folder with {folder.Id} does not exist!");
+            }
+
+            var newFilesHash = HashFilesInDirectory(backup.Path);
+            var newDirectoryHash = HashSubDirectories(backup.Path);
+
+            var initialFileHash = JsonSerializer.Deserialize<Dictionary<string, string>>(backup.HashedContents);
+            var initialDirectoryHash = JsonSerializer.Deserialize<Dictionary<string, string>>(backup.HashedFolders);
+
+            bool IsChanged = false;
+            foreach (var key in initialDirectoryHash.Keys)
+            {
+                string hash;
+                var ValueExists = newDirectoryHash.TryGetValue(key, out hash);
+
+                if (ValueExists)
+                {
+                    if (initialDirectoryHash[key] != hash)
+                    {
+                        IsChanged = true;
+                        var folderToUpdate = await manager.folder.GetFolderByPath(user.Id, key, true);
+                        var newKey = newDirectoryHash.Where(x => x.Value.Equals(hash)).FirstOrDefault().Key;
+                        var name = newKey.Remove(0, newKey.IndexOf(newKey.Split('\\')[^1]));
+                        folderToUpdate.Name = name;
+                        folderToUpdate.UpdatedAt = DateTime.Now;
+                    }
+                }
+                else
+                {
+                    IsChanged = true;
+                    var folderToDelete = await manager.folder.GetFolderByPath(user.Id, key, true);
+                    await manager.folder.DeleteFolder(folderToDelete);
+                }
+            }
+
+            foreach(var key in newDirectoryHash.Keys)
+            {
+                string hash;
+                var ValueExists = initialDirectoryHash.TryGetValue(key, out hash);
+
+                if (!ValueExists)
+                {
+                    IsChanged = true;
+                    //Create Folder
+                }
+            }
+
+            await manager.SaveAsync();
+
+            if (!IsChanged)
+            {
+                throw new Exception("No changes were found!");
+            }
         }
     }
 }
