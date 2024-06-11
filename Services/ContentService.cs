@@ -14,6 +14,7 @@ using Entities.Exceptions;
 using Entities.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Services.Contracts;
 
@@ -383,31 +384,13 @@ namespace Services
                 };
 
                 manager.userFolder.CreateUserFolder(userFolder);
+                await manager.SaveAsync();
 
                 if (Directory.GetFiles(AbsolutePath).Any())
                 {
                     foreach (var file in Directory.GetFiles(AbsolutePath))
                     {
-                        var fileType = GetFileType(file);
-
-                        var result = fileType switch
-                        {
-                            FileType.Videos => UploadVideos(Folder.Id, FilePath: file),
-                            FileType.Images => UploadImages(Folder.Id, FilePath: file),
-                            _ => UploadFiles(Folder.Id, FilePath: file),
-                        };
-                        var content = new Content
-                        {
-                            CreatedAt = DateTime.Now,
-                            FolderId = Folder.Id,
-                            Name = Path.GetFileNameWithoutExtension(file),
-                            Size = File.OpenRead(file).Length,
-                            FileExt = Path.GetExtension(file),
-                            FileType = fileType,
-                            URL = result.Url.AbsoluteUri
-                        };
-
-                        manager.content.CreateContent(content);
+                        await UploadFileToFolderWithPath(file, Folder.Id);
                     }
                 }
                 FolderId = Folder.Id;
@@ -434,28 +417,7 @@ namespace Services
                 {
                     foreach (var file in Directory.GetFiles(dirs))
                     {
-                        var fileType = GetFileType(file);
-
-                        var result = fileType switch
-                        {
-                            FileType.Videos => UploadVideos(SubFolder.Id, FilePath: file),
-                            FileType.Images => UploadImages(SubFolder.Id, FilePath: file),
-                            _ => UploadFiles(SubFolder.Id, FilePath: file),
-                        };
-                        var content = new Content
-                        {
-                            CreatedAt = DateTime.Now,
-                            FolderId = SubFolder.Id,
-                            Name = Path.GetFileNameWithoutExtension(file),
-                            Size = File.OpenRead(file).Length,
-                            FileExt = Path.GetExtension(file),
-                            FileType = fileType,
-                            URL = result.Url.AbsoluteUri
-                        };
-
-                        manager.content.CreateContent(content);
-
-                        await manager.SaveAsync();
+                        await UploadFileToFolderWithPath(file, SubFolder.Id);
                     }
                 }
 
@@ -494,6 +456,7 @@ namespace Services
             var initialDirectoryHash = JsonSerializer.Deserialize<Dictionary<string, string>>(backup.HashedFolders);
 
             bool IsChanged = false;
+            //Check Folders
             foreach (var key in initialDirectoryHash.Keys)
             {
                 string hash;
@@ -515,11 +478,14 @@ namespace Services
                 {
                     IsChanged = true;
                     var folderToDelete = await manager.folder.GetFolderByPath(user.Id, key, true);
-                    await manager.folder.DeleteFolder(folderToDelete);
+                    if(folderToDelete != null)
+                    {
+                        await manager.folder.DeleteFolder(folderToDelete);
+                    }
                 }
             }
 
-            foreach(var key in newDirectoryHash.Keys)
+            foreach (var key in newDirectoryHash.Keys.OrderBy(x => x.Split('\\').Length))
             {
                 string hash;
                 var ValueExists = initialDirectoryHash.TryGetValue(key, out hash);
@@ -527,9 +493,83 @@ namespace Services
                 if (!ValueExists)
                 {
                     IsChanged = true;
-                    //Create Folder
+                    var baseFolder = await manager.folder.GetFolderByPath(user.Id, Directory.GetParent(key).FullName, trackChanges: false);
+
+                    if (baseFolder != null)
+                    {
+                        var Folder = new Entities.Models.Folder
+                        {
+                            BaseFolderId = baseFolder.Id,
+                            Name = key.Split('\\')[^1],
+                            Access = Access.Private,
+                            IsOnLocal = true,
+                            PathOnLocal = key,
+                            CreatedAt = DateTime.Now,
+                            OwnerId = user.Id
+                        };
+
+                        manager.folder.CreateFolder(Folder);
+
+                        await manager.SaveAsync();
+                    }
                 }
             }
+
+            //Check files
+            foreach(var key in initialFileHash.Keys)
+            {
+                string hash;
+                var ValueExists = newFilesHash.TryGetValue(key, out hash);
+
+                if (ValueExists)
+                {
+                    if (initialFileHash[key] != hash)
+                    {
+                        IsChanged = true;
+                        var parentDirectory = Directory.GetParent(key).FullName;
+                        var parentFolder = await manager.folder.GetFolderByPath(user.Id, parentDirectory, true);
+                        parentFolder.UpdatedAt = DateTime.Now;
+                        var contents = await manager.content.GetContentsByFolderAsync(parentFolder.Id, true);
+                        var content = contents.FirstOrDefault(x => x.Id.Equals(contents));
+
+                        await DeleteContentAsync(username, parentFolder.Id, content.Id);
+
+                        await UploadFileToFolderWithPath(key, parentFolder.Id);
+                    }
+                }
+                else
+                {
+                    IsChanged = true;
+                    var parentDirectory = Directory.GetParent(key).FullName;
+                    var parentFolder = await manager.folder.GetFolderByPath(user.Id, parentDirectory, true);
+                    parentFolder.UpdatedAt = DateTime.Now;
+                    var contents = await manager.content.GetContentsByFolderAsync(parentFolder.Id, true);
+                    var content = contents.FirstOrDefault(x => x.Id.Equals(contents));
+
+                    await DeleteContentAsync(username, parentFolder.Id, content.Id);
+                    await manager.SaveAsync();
+                }
+            }
+
+            foreach (var key in newFilesHash.Keys.OrderBy(x => x.Split('\\').Length))
+            {
+                string hash;
+                var ValueExists = initialFileHash.TryGetValue(key, out hash);
+
+                if (!ValueExists)
+                {
+                    IsChanged = true;
+                    var parentDirectory = Directory.GetParent(key).FullName;
+                    var parentFolder = await manager.folder.GetFolderByPath(user.Id, parentDirectory, true);
+                    parentFolder.UpdatedAt = DateTime.Now;
+
+                    await UploadFileToFolderWithPath(key, parentFolder.Id);
+                }
+            }
+
+            backup.HashedContents = JsonSerializer.Serialize(newFilesHash);
+            backup.HashedFolders = JsonSerializer.Serialize(newDirectoryHash);
+            backup.UpdatedAt = DateTime.Now;
 
             await manager.SaveAsync();
 
@@ -537,6 +577,32 @@ namespace Services
             {
                 throw new Exception("No changes were found!");
             }
+        }
+
+        private async Task UploadFileToFolderWithPath(string path, Guid subFolderId)
+        {
+            var fileType = GetFileType(path);
+
+            var result = fileType switch
+            {
+                FileType.Videos => UploadVideos(subFolderId, FilePath: path),
+                FileType.Images => UploadImages(subFolderId, FilePath: path),
+                _ => UploadFiles(subFolderId, FilePath: path)
+            };
+            var content = new Content
+            {
+                CreatedAt = DateTime.Now,
+                FolderId = subFolderId,
+                Name = Path.GetFileNameWithoutExtension(path),
+                Size = File.OpenRead(path).Length,
+                FileExt = Path.GetExtension(path),
+                FileType = fileType,
+                URL = result.Url.AbsoluteUri
+            };
+
+            manager.content.CreateContent(content);
+
+            await manager.SaveAsync();
         }
     }
 }
