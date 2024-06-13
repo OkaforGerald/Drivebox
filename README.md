@@ -192,10 +192,8 @@ Response:
 {
   "IsSuccessful": true,
   "StatusCode": 200,
-  "Data": null,
-  "Errors": [
-    "No changes were found!"
-  ]
+  "Data": "No changes were found!",
+  "Errors": null
 }
 ```
 - DELETE /api/folders/{Id}/contents: Deletes a folder as well as it's subfolders and contents
