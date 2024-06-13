@@ -46,9 +46,9 @@ namespace Dropbox.Presentation.Controllers
             });
         }
 
-        [HttpDelete]
+        [HttpDelete("{ContentId}")]
         [Authorize]
-        public async Task<IActionResult> DeleteFolderAsync(Guid FolderId, Guid ContentId)
+        public async Task<IActionResult> DeleteContentAsync(Guid FolderId, Guid ContentId)
         {
             var username = HttpContext?.User?.Identity?.Name;
 
