@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
+using CloudinaryDotNet;
 using Contracts;
 using Entities.Exceptions;
 using Entities.Models;
@@ -15,18 +16,26 @@ using Microsoft.VisualBasic.FileIO;
 using Services.Contracts;
 using SharedAPI.DataTransfer;
 using SharedAPI.RequestFeatures;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using Folder = Entities.Models.Folder;
 
 namespace Services
 {
     public class FolderService : IFolderService
     {
+        private readonly Cloudinary cloudinary;
+        private readonly IConfiguration configuration;
         private readonly IRepositoryManager manager;
         private readonly UserManager<User> userManager;
         private readonly IMapper mapper;
 
-        public FolderService(IRepositoryManager manager, UserManager<User> userManager, IMapper mapper)
+        public FolderService(IRepositoryManager manager, IConfiguration configuration, UserManager<User> userManager, IMapper mapper)
         {
+            this.configuration = configuration;
+            cloudinary = new Cloudinary(new Account(configuration.GetSection("Cloudinary")["CloudName"],
+                configuration.GetSection("Cloudinary")["API-KEY"],
+                configuration.GetSection("Cloudinary")["API-SECRET"]));
+            cloudinary.Api.Secure = true;
             this.manager = manager;
             this.userManager = userManager;
             this.mapper = mapper;
@@ -130,7 +139,7 @@ namespace Services
             return response;
         }
 
-        public async Task<FolderV2Dto> GetFolderAsync(string username, Guid Id)
+        public async Task<FolderV2Dto> GetFolderAsync(string username, Guid Id, RequestParameters requestParameters)
         {
             var user = await userManager.FindByNameAsync(username);
 
@@ -158,7 +167,7 @@ namespace Services
                 throw new UnauthorizedFolderException(Id);
             }
 
-            var contents = await manager.content.GetContentsByFolderAsync(Id, trackChanges: false);
+            var contents = await manager.content.GetContentsByFolderAsync(Id, requestParameters, trackChanges: false);
 
             var response = new FolderV2Dto
             {
@@ -168,7 +177,7 @@ namespace Services
                 Name = folder?.Name,
                 Access = folder?.Access.ToString(),
                 Collaborators = permissions.Select(x => new CollaboratorDto { UserName = x.User.UserName, Permissions = x.Permissions.ToString() }).ToList(),
-                Folders = mapper.Map<List<FolderDto>>(await manager.folder.GetChildFolders(Id, folder.OwnerId, trackChanges: false)),
+                Folders = mapper.Map<List<FolderDto>>(await manager.folder.GetChildFolders(Id, folder.OwnerId, requestParameters, trackChanges: false)),
                 Contents = mapper.Map<List<ContentDto>>(contents),
                 CreatedAt = folder.CreatedAt,
                 UpdatedAt = folder.UpdatedAt                
@@ -188,7 +197,14 @@ namespace Services
                 throw new FolderNotFoundException(Id);
             }
 
-            var collaborators = await manager.userFolder.GetCollaboratorsForFolder(Id, false);
+            Entities.Models.Folder baseFolder = null;
+
+            if (folder.BaseFolderId != Guid.Empty)
+            {
+                baseFolder = await manager.folder.GetBaseFolder(folder.Id, trackChanges: false);
+            }
+
+            var collaborators = await manager.userFolder.GetCollaboratorsForFolder(baseFolder is null ? Id : baseFolder.Id, false);
 
             if(collaborators.Where(x => x.Permissions == Permissions.ReadnWrite).Any(x => x.UserId.Equals(user.Id))){
                 folder.Name = update.Name;
@@ -198,6 +214,35 @@ namespace Services
                 await manager.SaveAsync();
             }
             else
+            {
+                throw new UnauthorizedFolderException(Id);
+            }
+        }
+
+        public async Task DownloadAsync(string username, Guid Id)
+        {
+            var user = await userManager.FindByNameAsync(username);
+
+            var folder = await manager.folder.GetFolder(Id, trackChanges: true);
+
+            if (folder is null)
+            {
+                throw new FolderNotFoundException(Id);
+            }
+
+            Entities.Models.Folder baseFolder = null;
+
+            if (folder.BaseFolderId != Guid.Empty)
+            {
+                baseFolder = await manager.folder.GetBaseFolder(folder.Id, trackChanges: false);
+            }
+
+            var permissions = await manager.userFolder.GetCollaboratorsForFolder(baseFolder is null ? Id : baseFolder.Id, false);
+
+            var collaborators = permissions.Select(x => x.UserId)
+                .ToList();
+
+            if (folder.Access == Access.Private && !collaborators.Any(x => x.Equals(user?.Id)))
             {
                 throw new UnauthorizedFolderException(Id);
             }

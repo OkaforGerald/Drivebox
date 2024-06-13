@@ -107,7 +107,7 @@ namespace Services
                 {
                     UserId = request.RequesterId,
                     FolderId = FolderId,
-                    Permissions = Permissions.ReadnWrite,
+                    Permissions = Permissions.Read,
                 };
 
                 manager.userFolder.CreateUserFolder(userFolder);
@@ -145,6 +145,100 @@ namespace Services
             }
 
             await manager.SaveAsync();
+        }
+
+        public async Task GrantWriteAccess(string granter, string requester, Guid FolderId)
+        {
+            var requesterObj = await userManager.FindByNameAsync(requester);
+
+            if (requesterObj is null)
+            {
+                throw new NotFoundException("User not found!");
+            }
+
+            var granterObj = await userManager.FindByNameAsync(granter);
+
+            var folder = await manager.folder.GetFolder(FolderId, false);
+
+            if (folder is null)
+            {
+                throw new FolderNotFoundException(FolderId);
+            }
+
+            if (!folder.OwnerId.Equals(granterObj?.Id))
+            {
+                throw new UnauthorizedAction("Unauthorized to perform action on folder!");
+            }
+
+            Entities.Models.Folder baseFolder = null;
+
+            if (folder.BaseFolderId != Guid.Empty)
+            {
+                baseFolder = await manager.folder.GetBaseFolder(folder.Id, trackChanges: false);
+            }
+
+            var permissions = await manager.userFolder.GetCollaboratorsForFolder(baseFolder is null ? FolderId : baseFolder.Id, true);
+
+            var perm = permissions.Where(x => x.UserId.Equals(requesterObj.Id)).FirstOrDefault();
+
+            if (perm is not null)
+            {
+                perm.Permissions = Permissions.ReadnWrite;
+            }
+            else
+            {
+                var userFolder = new UserFolders
+                {
+                    UserId = requesterObj.Id,
+                    FolderId = FolderId,
+                    Permissions = Permissions.ReadnWrite
+                };
+
+                manager.userFolder.CreateUserFolder(userFolder);
+            }
+
+            await manager.SaveAsync();
+        }
+
+        public async Task RevokeAccess(string revoker, string revoked, Guid FolderId)
+        {
+            var revokedObj = await userManager.FindByNameAsync(revoked);
+
+            if (revokedObj is null)
+            {
+                throw new NotFoundException("User not found!");
+            }
+
+            var revokerObj = await userManager.FindByNameAsync(revoker);
+
+            var folder = await manager.folder.GetFolder(FolderId, false);
+
+            if (folder is null)
+            {
+                throw new FolderNotFoundException(FolderId);
+            }
+
+            if (!folder.OwnerId.Equals(revokerObj?.Id))
+            {
+                throw new UnauthorizedAction("Unauthorized to perform action on folder!");
+            }
+
+            Entities.Models.Folder baseFolder = null;
+
+            if (folder.BaseFolderId != Guid.Empty)
+            {
+                baseFolder = await manager.folder.GetBaseFolder(folder.Id, trackChanges: false);
+            }
+
+            var permissions = await manager.userFolder.GetCollaboratorsForFolder(baseFolder is null ? FolderId : baseFolder.Id, true);
+            var perm = permissions.Where(x => x.UserId.Equals(revokedObj.Id)).FirstOrDefault();
+
+            if(perm is not null)
+            {
+                manager.userFolder.DeleteUserFolder(perm);
+
+                await manager.SaveAsync();
+            }
         }
     }
 }

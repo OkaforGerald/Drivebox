@@ -46,6 +46,13 @@ namespace Repository.Extensions
             return source.Where(x => x.Name.ToLower().Contains(searchTerm.ToLower()));
         }
 
+        public static IQueryable<Content> Search(this IQueryable<Content> source, string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm)) return source;
+
+            return source.Where(x => x.Name.ToLower().Contains(searchTerm.ToLower()));
+        }
+
         public static IQueryable<Folder> Filter(this IQueryable<Folder> source, string FolderType)
         {
             if (string.IsNullOrEmpty(FolderType)) return source;

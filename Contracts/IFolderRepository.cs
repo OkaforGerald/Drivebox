@@ -29,5 +29,7 @@ namespace Contracts
         Task<Folder> GetFolderByPath(string OwnerId, string AbsolutePath, bool trackChanges);
 
         Task<List<Folder>> GetAllSubFolders(string ownerId, Guid FolderId, List<Folder> Folders, bool trackChanges);
+
+        Task<List<Folder>> GetChildFolders(Guid Id, string OwnerId, RequestParameters parameters, bool trackChanges);
     }
 }

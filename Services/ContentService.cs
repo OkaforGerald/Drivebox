@@ -138,6 +138,7 @@ namespace Services
                     {
                         Folder = FolderId.ToString(),
                         File = new FileDescription(Path.GetFileName(FilePath), stream),
+                        UseFilename = true,
                         Transformation = new Transformation().Height(500).Width(800)
                     };
 
@@ -153,6 +154,7 @@ namespace Services
                     {
                         Folder = FolderId.ToString(),
                         File = new FileDescription(file.FileName, stream),
+                        UseFilename = true,
                         Transformation = new Transformation().Height(500).Width(800)
                     };
 
@@ -172,6 +174,7 @@ namespace Services
                     {
                         Folder = FolderId.ToString(),
                         File = new FileDescription(Path.GetFileName(FilePath), stream),
+                        UseFilename = true,
                         Transformation = new Transformation().Height(500).Width(800)
                     };
 
@@ -187,6 +190,7 @@ namespace Services
                     {
                         Folder = FolderId.ToString(),
                         File = new FileDescription(file.FileName, stream),
+                        UseFilename = true,
                         Transformation = new Transformation().Height(500).Width(800)
                     };
 
@@ -206,6 +210,7 @@ namespace Services
                     {
                         Folder = FolderId.ToString(),
                         File = new FileDescription(Path.GetFileName(FilePath), stream),
+                        UseFilename = true,
                         Transformation = new Transformation().Height(500).Width(800)
                     };
 
@@ -221,6 +226,7 @@ namespace Services
                     {
                         Folder = FolderId.ToString(),
                         File = new FileDescription(file.FileName, stream),
+                        UseFilename = true,
                         Transformation = new Transformation().Height(500).Width(800)
                     };
 

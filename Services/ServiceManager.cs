@@ -21,7 +21,7 @@ namespace Services
         public ServiceManager(UserManager<User> userManager, IMapper mapper, IConfiguration configuration, IRepositoryManager manager)
         {
             _authService = new Lazy<IAuthService>(new AuthService(userManager, mapper, configuration));
-            _folderService = new Lazy<IFolderService>(new FolderService(manager, userManager, mapper));
+            _folderService = new Lazy<IFolderService>(new FolderService(manager, configuration, userManager, mapper));
             _contentService = new Lazy<IContentService>(new ContentService(configuration, manager, userManager));
             _requestService = new Lazy<IRequestService>(new RequestService(manager, userManager));
         }

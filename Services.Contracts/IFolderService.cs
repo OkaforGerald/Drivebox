@@ -17,7 +17,7 @@ namespace Services.Contracts
 
         Task<List<FolderDto>> GetFoldersForUserAsync(string username, RequestParameters parameters);
 
-        Task<FolderV2Dto> GetFolderAsync(string username, Guid Id);
+        Task<FolderV2Dto> GetFolderAsync(string username, Guid Id, RequestParameters requestParameters);
 
         Task UpdateFolderAsync(string username, Guid Id, CreateFolderDto update);
     }

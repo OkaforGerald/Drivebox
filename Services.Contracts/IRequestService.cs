@@ -16,5 +16,9 @@ namespace Services.Contracts
         Task AcknowledgeRequest(string username, Guid FolderId, Guid RequestId);
 
         Task DeclineRequest(string username, Guid FolderId, Guid RequestId);
+
+        Task GrantWriteAccess(string granter, string requester, Guid FolderId);
+
+        Task RevokeAccess(string revoker, string revoked, Guid FolderId);
     }
 }

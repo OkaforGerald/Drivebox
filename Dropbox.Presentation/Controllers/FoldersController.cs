@@ -89,10 +89,10 @@ namespace Dropbox.Presentation.Controllers
 
         [HttpGet("{Id:Guid}")]
         [Authorize]
-        public async Task<IActionResult> GetFolder(Guid Id)
+        public async Task<IActionResult> GetFolder(Guid Id, [FromQuery] RequestParameters requestParameters)
         {
             var username = HttpContext?.User?.Identity?.Name;
-            var response = await serviceManager.FolderService.GetFolderAsync(username, Id);
+            var response = await serviceManager.FolderService.GetFolderAsync(username, Id, requestParameters);
             return Ok(new ResponseDto<FolderV2Dto>
             {
                 IsSuccessful = true,
@@ -156,8 +156,17 @@ namespace Dropbox.Presentation.Controllers
             {
                 IsSuccessful = true,
                 StatusCode = StatusCodes.Status200OK,
-                Data = "Folder back up successfully!"
+                Data = "Folder back up successful!"
             });
+        }
+
+        [HttpGet("{Id:Guid}/download")]
+        [Authorize]
+        public async Task<IActionResult> DownloadFolderAsync()
+        {
+            var user = HttpContext?.User?.Identity?.Name;
+
+            return File("","");
         }
     }
 }

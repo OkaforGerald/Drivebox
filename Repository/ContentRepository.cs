@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Contracts;
 using Entities.Models;
 using Microsoft.EntityFrameworkCore;
+using Repository.Extensions;
+using SharedAPI.RequestFeatures;
 
 namespace Repository
 {
@@ -27,6 +29,13 @@ namespace Repository
         public async Task<List<Content>> GetContentsByFolderAsync(Guid FolderId, bool trackChanges)
         {
             return await FindByCondition(x => x.FolderId.Equals(FolderId), trackChanges)
+                .ToListAsync();
+        }
+
+        public async Task<List<Content>> GetContentsByFolderAsync(Guid FolderId, RequestParameters requestParameters, bool trackChanges)
+        {
+            return await FindByCondition(x => x.FolderId.Equals(FolderId), trackChanges)
+                .Search(requestParameters.SearchTerm)
                 .ToListAsync();
         }
 

@@ -60,6 +60,13 @@ namespace Repository
                 .ToListAsync();
         }
 
+        public async Task<List<Folder>> GetChildFolders(Guid Id, string OwnerId, RequestParameters parameters, bool trackChanges)
+        {
+            return await FindByCondition(x => x.BaseFolderId.Equals(Id) && x.OwnerId.Equals(OwnerId), trackChanges)
+                .Search(parameters.SearchTerm)
+                .ToListAsync();
+        }
+
         public async Task<Folder> GetBaseFolder(Guid Id, bool trackChanges)
         {
             Folder baseFolder = await GetFolder(Id, trackChanges);
